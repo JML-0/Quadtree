@@ -1,76 +1,147 @@
 #include "utils.h"
 
-Pixel moyenneRGB(Image *img, int x, int y, int h, int w)
+/**
+ * @brief Calcul une couleur moyenne pour chaque zone
+ * 
+ * @param img Image
+ * @param c Coordonées dans l'image
+ * @param h Hauteur de l'image
+ * @param w Largeur de l'image
+ * @return Pixel 
+ */
+Pixel moyenneRGB(Image * img, Coord c, int h, int w)
 {
-	Pixel c;
- 	int r = 0, g = 0, b = 0;
+	Pixel p;
+ 	unsigned long long r = 0, g = 0, b = 0;
 
-	/* Parcours de la matrix */
-	Pixel (*pixels)[img->w] = (Pixel(*)[img->w]) img->data;
-
-	for(int i = y; i < y + h; i++)
-		for(int j = x; j < x + w; j++)
+	/* Parcours de la matrice */
+	for(int i = c.y; i < c.y + h; i++)
+		for(int j = c.x; j < c.x + w; j++)
 		{
-			r += pixels[i][j].r;
-			g += pixels[i][j].g;
-			b += pixels[i][j].b;
+			r += img->data[i][j].r;
+			g += img->data[i][j].g;
+			b += img->data[i][j].b;
 		}
 
-	c.r = r / (h * w);
-	c.g = g / (h * w);
-	c.b = b / (h * w);
+	p.r = r / (h * w);
+	p.g = g / (h * w);
+	p.b = b / (h * w);
 
-	return c;
+	return p;
 }
 
-void colorCopy_of_rgb_to_tree(Quadtree *noeud, Pixel color)
+/**
+ * @brief Calcul la somme des erreurs sur chaque zone
+ * 
+ * @param img Image
+ * @param mRGB Moyenne RGB
+ * @param c Coordonnées dans l'image
+ * @param h Hauteur de l'image
+ * @param w Largeur de l'image
+ * @return double 
+ */
+double somErrorQuadtree(Image * img, Pixel mRGB, Coord c, int h, int w)
+{
+	double d = 0;
+
+	/* Parcours de la matrice */
+	for(int i = c.y; i < c.y + h; i++)
+		for(int j = c.x; j < c.x + w; j++)
+			d += dist(mRGB, img->data[i][j]);
+
+	return d;
+}
+
+/**
+ * @brief Distance euclidienne pour deux pixels p1 et p2
+ * 
+ * @param p1 r1,g1,b1
+ * @param p2 r2,g2,b2
+ * @return double 
+ */
+double dist(Pixel p1, Pixel p2)
+{
+	return sqrt(pow(p1.r - p2.r, 2) + pow(p1.g - p2.g, 2) + pow(p1.b - p2.b, 2));
+}
+
+/**
+ * @brief Indique si le noeud est une feuille (vide, pas de branche/fils)
+ * 
+ * @param noeud 
+ * @return int 
+ */
+int feuille(Quadtree noeud)
+{
+	return (noeud->NO == NULL && noeud->NE == NULL && noeud->SO == NULL && noeud->SE == NULL);
+}
+
+/**
+ * @brief Copie la couleur moyenne dans l'arbre
+ * 
+ * @param noeud 
+ * @param color 
+ */
+void ccRgb2tree(Quadtree *noeud, Pixel color)
 {
 	(*noeud)->color.r = color.r;
 	(*noeud)->color.g = color.g;
 	(*noeud)->color.b = color.b;
 }
 
-void colorCopy_of_tree_to_matrix(Quadtree noeud, Image *img, int x, int y, int h, int w)
+/**
+ * @brief Copie dans la matrice les couleurs dans l'arbre
+ * 
+ * @param noeud 
+ * @param img 
+ * @param c 
+ * @param h 
+ * @param w 
+ */
+void ccTree2matrix(Quadtree noeud, Image *img, Coord c, int h, int w)
 {
-	Pixel (*pixels)[img->w] = (Pixel(*)[img->w]) img->data;
-	
-	for(int i = y; i < y + h; i++)
-		for(int j = x; j < x + w; j++)
+	for(int i = c.y; i < c.y + h; i++)
+		for(int j = c.x; j < c.x + w; j++)
 		{
-			pixels[i][j].r = noeud->color.r;
-			pixels[i][j].g = noeud->color.g;
-			pixels[i][j].b = noeud->color.b;
+			img->data[i][j].r = noeud->color.r;
+			img->data[i][j].g = noeud->color.g;
+			img->data[i][j].b = noeud->color.b;
 		}
 }
 
-int errorQuadtree(Image *img, Quadtree *noeud, Pixel *c, int x, int y, int h, int w)
+/**
+ * @brief Met les noeuds à NULL lorsque "l'erreur" est inférieur au niveau
+ * 
+ * @param noeud 
+ */
+void nullNoeud(Quadtree * noeud)
 {
-	unsigned int m = 0;
-	*c = moyenneRGB(img, x, y, h, w);
-
-	/* Parcours de la matrix */
-	Pixel (*pixels)[img->w] = (Pixel(*)[img->w]) img->data;
-
-	for(int i = y; i < y + h; i++)
-		for(int j = x; j < x + w; j++)
-		{
-			m += sqrt(pow(c->r - pixels[i][j].r, 2) + 
-					  pow(c->g - pixels[i][j].g, 2) + 
-					  pow(c->b - pixels[i][j].b, 2));
-			//m += (pow((c->r - pixels[i][j].r), 2)) + 
-		 	//	 (pow((c->g - pixels[i][j].g), 2)) + 
-		 	//	 (pow((c->b - pixels[i][j].b), 2));
-		}
-
-	return m /= (3 * h * w);
-	//return m /= (3 * size * size);
+	(*noeud)->NO = NULL;
+	(*noeud)->NE = NULL;
+	(*noeud)->SO = NULL;
+	(*noeud)->SE = NULL;
 }
 
-int feuille(Quadtree noeud)
+/**
+ * @brief Libère la mémoire de l'image
+ * 
+ * @param img 
+ */
+void clearImage(Image * img)
 {
-	return (noeud->NO == NULL && noeud->NE == NULL && noeud->SO == NULL && noeud->SE == NULL);
+	if (!img) 		return;
+	if (!img->data) return;
+
+	for(int i = 0; i < img->w; i++)
+		free(img->data[i]);
+	free(img->data);
+	free(img);
 }
 
+/**
+ * @brief Libère la mémoire de l'arbre
+ * 
+ * @param q 
+ */
 void clearQuadtree(Quadtree q)
 {
 	if (!q) return;
@@ -82,9 +153,39 @@ void clearQuadtree(Quadtree q)
 	free(q);
 }
 
-void clearImage(Image *img)
-{
-	if (!img) return;
-	if (!img->data) return;
-	free(img->data); free(img);
+/**
+ * @brief Retourne les coordonnées x,y dans l'image en fonction de la découpe
+ * 
+ * @param d Direction/zone (NO,NE,SO,SE)
+ * @param x x actuel
+ * @param y y actuel
+ * @param w Largeur de l'image
+ * @param h Hauteur de l'image
+ * @return Coord 
+ */
+Coord getCoord(Direction d, int x, int y, int w, int h)
+{	
+	Coord c;
+	switch (d)
+    {
+    case NO:
+		c.x = x;
+		c.y = y;
+        return c;
+    case NE:
+        c.x = x + (w / 2);
+		c.y = y;
+        return c;
+    case SO:
+        c.x = x;
+		c.y = y + (h / 2);
+        return c;
+    case SE:
+        c.x = x + (w / 2);
+		c.y = y + (h / 2);
+        return c;
+	default:
+		c.x = c.y = 0;
+		return c;
+    }
 }

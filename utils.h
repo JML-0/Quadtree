@@ -6,9 +6,21 @@
 #include <assert.h>
 #include <math.h>
 
-/*
- *	Quadtree struct
- */ 
+/**
+ * @brief Quadtree struct
+ * __________________________
+ * |           |            |
+ * |           |            |
+ * |     NO    |     NE     |
+ * |           |            |
+ * |___________|____________|
+ * |           |            |
+ * |           |            |
+ * |     SO    |     SE     |
+ * |           |            |
+ * |___________|____________|
+ * 
+ */
 typedef struct Quadtree
 {	
 	Pixel color;
@@ -17,12 +29,33 @@ typedef struct Quadtree
 	struct Quadtree *SO, *SE;
  } *Quadtree;
 
-extern Pixel moyenneRGB(Image *, int, int, int, int);
-extern void colorCopy_of_rgb_to_tree(Quadtree *, Pixel);
-extern void colorCopy_of_tree_to_matrix(Quadtree, Image *, int, int, int, int);
-extern int errorQuadtree(Image *, Quadtree *, Pixel *, int, int, int, int);
-extern int feuille(Quadtree);
-extern void clearQuadtree(Quadtree);
-extern void clearImage(Image *);
+/**
+ * @brief Struct Coord
+ * 
+ */
+typedef struct Coord
+{
+	int x, y;
+} Coord;
+
+/**
+ * @brief Enum Direction
+ * 
+ */
+typedef enum Direction
+{
+  NO, NE, SO, SE
+} Direction;
+
+extern Pixel moyenneRGB(Image * img, Coord c, int h, int w);
+extern double somErrorQuadtree(Image * img, Pixel mRGB, Coord c, int h, int w);
+extern int feuille(Quadtree noeud);
+extern Coord getCoord(Direction d, int x, int y, int w, int h);
+extern double dist(Pixel p1, Pixel p2);
+extern void ccRgb2tree(Quadtree *noeud, Pixel color);
+extern void ccTree2matrix(Quadtree noeud, Image *img, Coord c, int h, int w);
+extern void nullNoeud(Quadtree * noeud);
+extern void clearQuadtree(Quadtree q);
+extern void clearImage(Image * img);
 
 #endif

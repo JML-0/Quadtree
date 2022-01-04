@@ -1,97 +1,92 @@
 #include "quadtree.h"
 
-/*
- * matrix ** -> http://c-faq.com/aryptr/dynmuldimary.html
+/** matrice ** -> http://c-faq.com/aryptr/dynmuldimary.html
+ * 
+ * A = {x:0 y:0 h:1024 w:1024}
+ * (0,0)
+ * x-------------------------
+ * |                        |
+ * |                        |
+ * |                        |
+ * |                        |
+ * |           A            |
+ * |                        |
+ * |                        |
+ * |                        |
+ * |                        |
+ * |                        |
+ * -------------------------x
+ *                          (1024,1024) 
+ * B = {x:0   y:0 h:512 w:512}
+ * C = {x:512 y:0 h:512 w:512}
+ * (0,0)       (512, 0)
+ * x-----------x-------------
+ * |           |            |
+ * |           |            |
+ * |     B     |     C      |
+ * |           |            |
+ * |___________|____________|
+ * |                        |
+ * |                        |
+ * |                        |
+ * |                        |
+ * |                        |
+ * -------------------------x
+ *                          (1024, 1024)
+ * [...]
+ * @brief Découpe l'image en quatre zones avec leur couleur moyenne
+ * 
+ * @param img Image
+ * @param noeud Noeud dans l'arbre
+ * @param c Coordonnées dans l'image en fonction du découpage
+ * @param h Hauteur de l'image
+ * @param w Largeur de l'image
+ * @param lvl Niveau de découpe
  */
-
-/*
- *	Compression function
- */
-void compression(Image *img, Quadtree *noeud, int x, int y, int h, int w, int profondeur)
+void decoupage(Image *img, Quadtree *noeud, Coord c, int h, int w, int lvl)
 {
 	Pixel moyenne;
-	int error;
+	double error;
 
 	*noeud = malloc(sizeof(struct Quadtree)); assert(*noeud);
-	error = errorQuadtree(img, noeud, &moyenne, x, y, h, w);
+
+	moyenne = moyenneRGB(img, c, h, w);
+	error 	= somErrorQuadtree(img, moyenne, c, h, w);
 
 #ifdef DEBUG
 	printf("r:%d g:%d b:%d error:%d x:%d y:%d\n", moyenne.r, moyenne.g, moyenne.b, error, x, y);
 #endif
 
-	colorCopy_of_rgb_to_tree(noeud, moyenne);
+	ccRgb2tree(noeud, moyenne);
 	
-	if(error > profondeur)
+	if(error > lvl)
 	{
-		compression(img, &(*noeud)->NO, x,           y,           (h / 2), (w / 2), profondeur);
-		compression(img, &(*noeud)->NE, x + (w / 2), y,           (h / 2), (w / 2), profondeur);
-		compression(img, &(*noeud)->SO, x,	 		 y + (h / 2), (h / 2), (w / 2), profondeur);
-		compression(img, &(*noeud)->SE, x + (w / 2), y + (h / 2), (h / 2), (w / 2), profondeur);
+		decoupage(img, &(*noeud)->NO, getCoord(NO, c.x, c.y, h, w), (h / 2), (w / 2), lvl);
+		decoupage(img, &(*noeud)->NE, getCoord(NE, c.x, c.y, h, w), (h / 2), (w / 2), lvl);
+		decoupage(img, &(*noeud)->SO, getCoord(SO, c.x, c.y, h, w), (h / 2), (w / 2), lvl);
+		decoupage(img, &(*noeud)->SE, getCoord(SE, c.x, c.y, h, w), (h / 2), (w / 2), lvl);
 	}
-	else
-	{
-		(*noeud)->NO = NULL;
-		(*noeud)->NE = NULL;
-		(*noeud)->SO = NULL;
-		(*noeud)->SE = NULL;
-	}
+	else nullNoeud(noeud);
 }
-/*
- *	Traverses tree and computes based on leafes
- *	the rgb matrix
+
+/**
+ * @brief Parcours l'arbre tant que, noeud != feuille,
+ * Sinon, rempli la matrice 
+ * 
+ * @param noeud Noeud dans l'abre
+ * @param img Image
+ * @param c Coordonnées dans l'image en fonction du remplissage
+ * @param h Hauteur de l'image
+ * @param w Largeur de l'image
  */
-void tree2matrix(Quadtree noeud, Image *img, int x, int y, int h, int w)
+void remplissage(Quadtree noeud, Image *img, Coord c, int h, int w)
 {
-	if(feuille(noeud))
+	if(!feuille(noeud))
 	{
-		colorCopy_of_tree_to_matrix(noeud, img, x, y, h, w);
+		remplissage(noeud->NO, img, getCoord(NO, c.x, c.y, h, w), (h / 2), (w / 2));
+		remplissage(noeud->NE, img, getCoord(NE, c.x, c.y, h, w), (h / 2), (w / 2));
+		remplissage(noeud->SO, img, getCoord(SO, c.x, c.y, h, w), (h / 2), (w / 2));
+		remplissage(noeud->SE, img, getCoord(SE, c.x, c.y, h, w), (h / 2), (w / 2));
 	}
-	else
-	{
-		tree2matrix(noeud->NO, img, x,           y,           (h / 2), (w / 2));
-		tree2matrix(noeud->NE, img, x + (w / 2), y,           (h / 2), (w / 2));
-		tree2matrix(noeud->SO, img, x,		     y + (h / 2), (h / 2), (w / 2));
-		tree2matrix(noeud->SE, img, x + (w / 2), y + (h / 2), (h / 2), (w / 2));
-	}
-}
-
-int main(int argc, char *argv[])
-{
-	if (argc < 4)
-	{
-		printf("Usage: ./quadtree <profondeur> <input image>.ppm <output image>.ppm\n");
-		return 0;
-	}
-
-	int profondeur;
-	Image *img;
-	Quadtree noeud = NULL;
-	
-	profondeur = atoi(argv[1]);
-
-	printf("read...");
-	fflush(stdout); //clear buffer
-	img = read(argv[2]);
-	printf("ok\n");
-
-	printf("compress...");
-	fflush(stdout);
-	compression(img, &noeud, 0, 0, img->h, img->w, profondeur);
-	printf("ok\n");
-
-	printf("decompress...");
-	fflush(stdout);
-	tree2matrix(noeud, img, 0, 0, img->h, img->w);
-	printf("ok\n");
-
-	printf("write...");
-	fflush(stdout);
-	write(argv[3], img);
-	printf("ok\n");
-
-	printf("clear...");
-	fflush(stdout);
-	clearQuadtree(noeud);
-	clearImage(img);
-	printf("ok\n");
+	else ccTree2matrix(noeud, img, c, h, w);
 }

@@ -5,10 +5,11 @@
 #include <stdlib.h>
 #include <assert.h>
 
-/*
- *	Pixel struct
- *	char = 0-255 <=> color rgb
- */ 
+/**
+ * @brief Pixel struct
+ *	uchar = 0-255 <=> color rgb
+ * 
+ */
 typedef struct pixel
 {
 	unsigned char r;
@@ -16,17 +17,18 @@ typedef struct pixel
 	unsigned char b;
 } Pixel;
 
-/*
- *	Image struct
- */ 
+/**
+ * @brief Image struct
+ * 
+ */
 typedef struct image
 {
 	int w, h;
-	Pixel *data;
+	Pixel **data;
 } Image;
 
-extern void FILEcheck(FILE *);
-extern void write(char *, Image *);
-extern Image *read(char *);
+extern void FILEcheck(FILE * f);
+extern void write(char * path, Image * img);
+extern Image *read(char * path);
 
 #endif
