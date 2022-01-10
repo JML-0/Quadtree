@@ -246,9 +246,9 @@ void readFileCompressed(QuadtreeVector **v, char * path)
  */
 void addNoeuds(Quadtree *** AdressesNoeuds, unsigned int nbNoeuds)
 {
-	if(!(*AdressesNoeuds)) 	 (*AdressesNoeuds) = malloc(sizeof(Quadtree*)); assert((*AdressesNoeuds));
+	if(!(*AdressesNoeuds)) /*->*/ (*AdressesNoeuds) = malloc(sizeof(Quadtree*)); assert((*AdressesNoeuds));
 	// On incrémente la taille en fonction du nombre de noeuds
-	if(nbNoeuds > 0) (*AdressesNoeuds) = realloc((*AdressesNoeuds), sizeof(Quadtree*) * (nbNoeuds + 1));
+	if(nbNoeuds) (*AdressesNoeuds) = realloc((*AdressesNoeuds), sizeof(Quadtree*) * (++nbNoeuds));
 }
 
 /**
