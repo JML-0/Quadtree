@@ -30,5 +30,6 @@ typedef struct image
 extern void FILEcheck(FILE * f);
 extern void write(char * path, Image * img);
 extern Image *read(char * path);
+extern Image *createImage(int h, int w);
 
 #endif

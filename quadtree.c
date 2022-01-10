@@ -43,12 +43,12 @@
  * @param w Largeur de l'image
  * @param lvl Niveau de découpe
  */
-void decoupage(Image *img, Quadtree *noeud, Coord c, int h, int w, int lvl)
+void decoupage(Image *img, Quadtree **noeud, Coord c, int h, int w, int lvl)
 {
 	Pixel moyenne;
 	double error;
 
-	*noeud = malloc(sizeof(struct Quadtree)); assert(*noeud);
+	*noeud = (Quadtree*)malloc(sizeof(struct Quadtree)); assert(*noeud);
 
 	moyenne = moyenneRGB(img, c, h, w);
 	error 	= somErrorQuadtree(img, moyenne, c, h, w);
@@ -57,7 +57,7 @@ void decoupage(Image *img, Quadtree *noeud, Coord c, int h, int w, int lvl)
 	printf("r:%d g:%d b:%d error:%d x:%d y:%d\n", moyenne.r, moyenne.g, moyenne.b, error, x, y);
 #endif
 
-	ccRgb2tree(noeud, moyenne);
+	ccRgb2tree(noeud, moyenne, h, w);
 	
 	if(error > lvl)
 	{
@@ -66,7 +66,11 @@ void decoupage(Image *img, Quadtree *noeud, Coord c, int h, int w, int lvl)
 		decoupage(img, &(*noeud)->SO, getCoord(SO, c.x, c.y, h, w), (h / 2), (w / 2), lvl);
 		decoupage(img, &(*noeud)->SE, getCoord(SE, c.x, c.y, h, w), (h / 2), (w / 2), lvl);
 	}
-	else nullNoeud(noeud);
+	else 
+	{
+		nullNoeud(noeud);
+		return;
+	}
 }
 
 /**
@@ -79,7 +83,7 @@ void decoupage(Image *img, Quadtree *noeud, Coord c, int h, int w, int lvl)
  * @param h Hauteur de l'image
  * @param w Largeur de l'image
  */
-void remplissage(Quadtree noeud, Image *img, Coord c, int h, int w)
+void remplissage(Quadtree *noeud, Image *img, Coord c, int h, int w)
 {
 	if(!feuille(noeud))
 	{

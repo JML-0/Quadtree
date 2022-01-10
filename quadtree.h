@@ -4,9 +4,10 @@
 #include "ppm.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <assert.h>
 
-extern void decoupage(Image *img, Quadtree *noeud, Coord c, int h, int w, int lvl);
-extern void remplissage(Quadtree noeud, Image *img, Coord c, int h, int w);
+extern void decoupage(Image *img, Quadtree **noeud, Coord c, int h, int w, int lvl);
+extern void remplissage(Quadtree *noeud, Image *img, Coord c, int h, int w);
 
 #endif

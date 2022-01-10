@@ -22,7 +22,7 @@ Pixel moyenneRGB(Image * img, Coord c, int h, int w)
 			g += img->data[i][j].g;
 			b += img->data[i][j].b;
 		}
-
+		
 	p.r = r / (h * w);
 	p.g = g / (h * w);
 	p.b = b / (h * w);
@@ -42,14 +42,14 @@ Pixel moyenneRGB(Image * img, Coord c, int h, int w)
  */
 double somErrorQuadtree(Image * img, Pixel mRGB, Coord c, int h, int w)
 {
-	double d = 0;
+	long double d = 0;
 
 	/* Parcours de la matrice */
 	for(int i = c.y; i < c.y + h; i++)
 		for(int j = c.x; j < c.x + w; j++)
 			d += dist(mRGB, img->data[i][j]);
 
-	return d;
+	return d /= (3 * h * w);
 }
 
 /**
@@ -70,9 +70,20 @@ double dist(Pixel p1, Pixel p2)
  * @param noeud 
  * @return int 
  */
-int feuille(Quadtree noeud)
+int feuille(Quadtree * noeud)
 {
 	return (noeud->NO == NULL && noeud->NE == NULL && noeud->SO == NULL && noeud->SE == NULL);
+}
+
+/**
+ * @brief Indique si une case est une feuille (-1)
+ * 
+ * @param qv 
+ * @return int 
+ */
+int feuilleVec(QuadtreeVector qv)
+{
+	return (qv.NOid == -1 && qv.NEid == -1 && qv.SOid == -1 && qv.SEid == -1);
 }
 
 /**
@@ -81,11 +92,45 @@ int feuille(Quadtree noeud)
  * @param noeud 
  * @param color 
  */
-void ccRgb2tree(Quadtree *noeud, Pixel color)
+void ccRgb2tree(Quadtree **noeud, Pixel color, int h, int w)
 {
 	(*noeud)->color.r = color.r;
 	(*noeud)->color.g = color.g;
 	(*noeud)->color.b = color.b;
+	(*noeud)->h = h;
+	(*noeud)->w = w;
+}
+
+/**
+ * @brief Copie les données du vecteur dans l'arbre
+ * 
+ * @param qv 
+ * @param noeud 
+ * @param id 
+ */
+void ccVector2tree(QuadtreeVector *qv, Quadtree **noeud, int id)
+{
+	(*noeud)->id   	  = id;
+	(*noeud)->color.r = qv[id].color.r;
+	(*noeud)->color.g = qv[id].color.g;
+	(*noeud)->color.b = qv[id].color.b;
+	(*noeud)->h   	  = qv[id].h;
+	(*noeud)->w   	  = qv[id].w;
+}
+
+/**
+ * @brief Copie les données de l'arbre dans le vecteur
+ * 
+ * @param qv 
+ * @param noeud 
+ */
+void ccTree2Vector(QuadtreeVector *qv, Quadtree **AdressesNoeuds)
+{
+	qv->color.r = (*AdressesNoeuds)->color.r;
+	qv->color.g = (*AdressesNoeuds)->color.g;
+	qv->color.b = (*AdressesNoeuds)->color.b;
+	qv->h 		= (*AdressesNoeuds)->h;
+	qv->w 		= (*AdressesNoeuds)->w;
 }
 
 /**
@@ -97,7 +142,7 @@ void ccRgb2tree(Quadtree *noeud, Pixel color)
  * @param h 
  * @param w 
  */
-void ccTree2matrix(Quadtree noeud, Image *img, Coord c, int h, int w)
+void ccTree2matrix(Quadtree * noeud, Image *img, Coord c, int h, int w)
 {
 	for(int i = c.y; i < c.y + h; i++)
 		for(int j = c.x; j < c.x + w; j++)
@@ -109,11 +154,200 @@ void ccTree2matrix(Quadtree noeud, Image *img, Coord c, int h, int w)
 }
 
 /**
+ * @brief Copie les adresses des noeuds dans un vecteur
+ * 1) on copie les adresses des noeuds dans le vecteur @AdressesNoeuds en fonction de l'id
+ * 2) on "relit" l'id du vecteur où on vient de copier l'adresse du noeud
+ * Chaques noeuds est maintenant reliés à un id
+ * 
+ * @param noeud 
+ * @param AdressesNoeuds 
+ * @param id 
+ */
+void copyAdressesNoeuds(Quadtree * noeud, Quadtree *** AdressesNoeuds, unsigned int * id)
+{
+	if(noeud)
+	{
+		addNoeuds(AdressesNoeuds, *id);
+		//  	** 			*
+		(*AdressesNoeuds)[(*id)] = noeud;
+		noeud->id = (*id)++;
+
+        copyAdressesNoeuds(noeud->NO, AdressesNoeuds, id);
+        copyAdressesNoeuds(noeud->NE, AdressesNoeuds, id);
+        copyAdressesNoeuds(noeud->SO, AdressesNoeuds, id);
+        copyAdressesNoeuds(noeud->SE, AdressesNoeuds, id);
+	} 
+	else return;
+}
+
+/**
+ * @brief Copie les id de l'arbre dans le vecteur
+ * 
+ * @param qv 
+ * @param noeud 
+ */
+void createNoeudsVector(QuadtreeVector *qv, Quadtree **AdressesNoeuds)
+{
+	if((*AdressesNoeuds)->NO) /*->*/ (*qv).NOid = (*AdressesNoeuds)->NO->id;
+	else 			 		  /*->*/ (*qv).NOid = -1;
+
+	if((*AdressesNoeuds)->NE) /*->*/ (*qv).NEid = (*AdressesNoeuds)->NE->id;
+	else 			 		  /*->*/ (*qv).NEid = -1;
+
+	if((*AdressesNoeuds)->SO) /*->*/ (*qv).SOid = (*AdressesNoeuds)->SO->id;
+	else 			 		  /*->*/ (*qv).SOid = -1;
+
+	if((*AdressesNoeuds)->SE) /*->*/ (*qv).SEid = (*AdressesNoeuds)->SE->id;
+	else 			 		  /*->*/ (*qv).SEid = -1;
+
+	ccTree2Vector(qv, AdressesNoeuds);
+}
+
+/**
+ * @brief Crée un vecteur
+ * 
+ * @param qv 
+ * @param noeud 
+ * @param nbNoeuds 
+ */
+void createVector(QuadtreeVector **qv, Quadtree **AdressesNoeuds, int nbNoeuds)
+{
+	if(!(*qv)) (*qv) = malloc(sizeof(QuadtreeVector) * nbNoeuds); assert((*qv));
+	for(int i = 0; i < nbNoeuds; i++)
+		createNoeudsVector(&(*qv)[i], &AdressesNoeuds[i]);
+}
+
+/**
+ * @brief Lit une image compressée
+ * https://koor.fr/C/cstdio/fopen.wp
+ * @param v 
+ * @param path 
+ */
+void readFileCompressed(QuadtreeVector **v, char * path)
+{
+	FILE * f;
+	unsigned int nbNoeuds;
+	f = fopen(path, "rb"); //read binary
+	FILEcheck(f);
+
+	fread(&nbNoeuds, sizeof(int), 1, f); //on récupère le nombre de noeuds
+
+	*v = malloc(sizeof(QuadtreeVector) * nbNoeuds); assert(*v);
+	fread(*v, sizeof(QuadtreeVector), nbNoeuds, f); //taille bloc * nbNoeuds
+
+	fclose(f);
+}
+
+/**
+ * @brief Réalloue/alloue de la mémoire en fonction du nombre de noeuds
+ * 
+ * @param AdressesNoeuds 
+ * @param nbNoeuds 
+ */
+void addNoeuds(Quadtree *** AdressesNoeuds, unsigned int nbNoeuds)
+{
+	if(!(*AdressesNoeuds)) 	 (*AdressesNoeuds) = malloc(sizeof(Quadtree*)); assert((*AdressesNoeuds));
+	// On incrémente la taille en fonction du nombre de noeuds
+	if(nbNoeuds > 0) (*AdressesNoeuds) = realloc((*AdressesNoeuds), sizeof(Quadtree*) * (nbNoeuds + 1));
+}
+
+/**
+ * @brief Crée un fichier .arbre contenant l'arbre
+ * 
+ * @param qv 
+ * @param path 
+ * @param nbNoeuds 
+ */
+void writeQuadtree(QuadtreeVector ** qv, char * path, int nbNoeuds)
+{
+	FILE * f;
+	f = fopen(path, "wb"); //write binary
+	FILEcheck(f);
+
+	fwrite(&nbNoeuds, sizeof(int), 1, f);
+
+	for(unsigned int i = 0; i < nbNoeuds; i++)
+		fwrite(&(*qv)[i], sizeof(QuadtreeVector), 1, f);
+
+	fclose(f);
+}
+
+/**
+ * @brief Crée un arbre à partir du vecteur
+ * 
+ * @param qv 
+ * @param noeud 
+ * @param i 
+ */
+void createQuadtree(QuadtreeVector * qv, Quadtree ** noeud, int i)
+{
+	*noeud = malloc(sizeof(Quadtree)); assert(noeud);
+	ccVector2tree(qv, noeud, i);
+
+	if(!feuilleVec(qv[i])) //on parcours tant que ce n'est pas une feuille
+	{
+		createQuadtree(qv, &(*noeud)->NO, qv[i].NOid);
+		createQuadtree(qv, &(*noeud)->NE, qv[i].NEid);
+		createQuadtree(qv, &(*noeud)->SO, qv[i].SOid);
+		createQuadtree(qv, &(*noeud)->SE, qv[i].SEid);
+
+	}
+	else nullNoeud(noeud); //feuille
+}
+
+/**
+ * @brief Retourne la taille d'un fichier en Oct
+ * https://stackoverflow.com/a/238607
+ * @param path 
+ * @return unsigned long long 
+ */
+unsigned long long getSizeFile(char * path)
+{
+	FILE* f = fopen(path, "r");
+	FILEcheck(f);
+  
+    fseek(f, 0L, SEEK_END);
+    unsigned long long r = ftell(f);
+    fclose(f);
+	
+	return r;
+}
+
+/**
+ * @brief Affiche la taille d'un fichier
+ * Récupérer d'un autre projet
+ * 
+ * @param size 
+ */
+void showSizeFile(unsigned long long size)
+{
+	int Ko = 1024;
+	int Mo = Ko * 1024;
+	int Go = Mo * 1024;
+
+	if (size >= Go)
+		if (size % Go == 0)
+			printf("%d Go\n", (int)size / Go);
+		else
+			printf("%.1f Go\n", (float)size / Go);
+	else if (size >= Mo)
+		if (size % Mo == 0)
+			printf("%d Mo\n", (int)size / Mo);
+		else
+			printf("%.1f Mo\n", (float)size / Mo);
+	else
+		if (size % Ko == 0)
+			printf("%d Ko\n", (int)size / Ko);
+		else
+			printf("%.1f Ko\n", (float)size / Ko);
+}
+
+/**
  * @brief Met les noeuds à NULL lorsque "l'erreur" est inférieur au niveau
  * 
  * @param noeud 
  */
-void nullNoeud(Quadtree * noeud)
+void nullNoeud(Quadtree ** noeud)
 {
 	(*noeud)->NO = NULL;
 	(*noeud)->NE = NULL;
@@ -142,7 +376,7 @@ void clearImage(Image * img)
  * 
  * @param q 
  */
-void clearQuadtree(Quadtree q)
+void clearQuadtree(Quadtree * q)
 {
 	if (!q) return;
 	clearQuadtree(q->NO);
@@ -151,6 +385,20 @@ void clearQuadtree(Quadtree q)
 	clearQuadtree(q->SE);
 
 	free(q);
+}
+
+/**
+ * @brief Libère la mémoire du vecteur
+ * 
+ * @param q 
+ * @param nbNoeuds 
+ */
+void clearQuadtreeVector(Quadtree *** q, int nbNoeuds)
+{
+	if (!*q) return;
+	for(int i = 0; i < nbNoeuds; i++)
+		free((*q)[i]);
+	free(*q);
 }
 
 /**

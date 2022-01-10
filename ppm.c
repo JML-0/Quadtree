@@ -46,6 +46,28 @@ void write(char * path, Image * img)
 }
 
 /**
+ * @brief Crée une image
+ * 
+ * @param h Hauteur
+ * @param w Largeur
+ * @return Image* 
+ */
+Image *createImage(int h, int w)
+{
+	Image *img = (Image *)malloc(sizeof(Image)); assert(img);
+	img->h = h;
+	img->w = w;
+	img->data = (Pixel **)malloc(w * h * sizeof(Pixel)); assert(img->data);
+	for(int i = 0; i < h; i++) //parcours de l'image en hauteur
+	{
+		img->data[i] = malloc(sizeof(Pixel) * w); //allocation de mémoire pour chaque "ligne"
+		assert(img->data[i]);
+	}
+
+	return img;
+}
+
+/**
  * @brief Lit une image ppm
  * Vu en cours de programmation Graphique
  * 
