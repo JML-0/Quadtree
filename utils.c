@@ -210,27 +210,27 @@ void createNoeudsVector(QuadtreeVector *qv, Quadtree **AdressesNoeuds)
  * @param noeud 
  * @param nbNoeuds 
  */
-void createVector(QuadtreeVector **qv, Quadtree **AdressesNoeuds, int nbNoeuds)
+void createVector(QuadtreeVector **qv, Quadtree **AdressesNoeuds, unsigned int nbNoeuds)
 {
 	if(!(*qv)) (*qv) = malloc(sizeof(QuadtreeVector) * nbNoeuds); assert((*qv));
-	for(int i = 0; i < nbNoeuds; i++)
+	for(unsigned int i = 0; i < nbNoeuds; i++)
 		createNoeudsVector(&(*qv)[i], &AdressesNoeuds[i]);
 }
 
 /**
- * @brief Lit une image compressée
+ * @brief Lit un fichier arbre
  * https://koor.fr/C/cstdio/fopen.wp
  * @param v 
  * @param path 
  */
-void readFileCompressed(QuadtreeVector **v, char * path)
+void readFileQuadtree(QuadtreeVector **v, char * path)
 {
 	FILE * f;
 	unsigned int nbNoeuds;
 	f = fopen(path, "rb"); //read binary
 	FILEcheck(f);
 
-	fread(&nbNoeuds, sizeof(int), 1, f); //on récupère le nombre de noeuds
+	fread(&nbNoeuds, sizeof(unsigned int), 1, f); //on récupère le nombre de noeuds
 
 	*v = malloc(sizeof(QuadtreeVector) * nbNoeuds); assert(*v);
 	fread(*v, sizeof(QuadtreeVector), nbNoeuds, f); //taille bloc * nbNoeuds
@@ -258,13 +258,13 @@ void addNoeuds(Quadtree *** AdressesNoeuds, unsigned int nbNoeuds)
  * @param path 
  * @param nbNoeuds 
  */
-void writeQuadtree(QuadtreeVector ** qv, char * path, int nbNoeuds)
+void writeQuadtree(QuadtreeVector ** qv, char * path, unsigned int nbNoeuds)
 {
 	FILE * f;
 	f = fopen(path, "wb"); //write binary
 	FILEcheck(f);
 
-	fwrite(&nbNoeuds, sizeof(int), 1, f);
+	fwrite(&nbNoeuds, sizeof(unsigned int), 1, f);
 
 	for(unsigned int i = 0; i < nbNoeuds; i++)
 		fwrite(&(*qv)[i], sizeof(QuadtreeVector), 1, f);
@@ -279,17 +279,17 @@ void writeQuadtree(QuadtreeVector ** qv, char * path, int nbNoeuds)
  * @param noeud 
  * @param i 
  */
-void createQuadtree(QuadtreeVector * qv, Quadtree ** noeud, int i)
+void createQuadtree(QuadtreeVector * qv, Quadtree ** noeud, int id)
 {
 	*noeud = malloc(sizeof(Quadtree)); assert(noeud);
-	ccVector2tree(qv, noeud, i);
+	ccVector2tree(qv, noeud, id);
 
-	if(!feuilleVec(qv[i])) //on parcours tant que ce n'est pas une feuille
+	if(!feuilleVec(qv[id])) //on parcours tant que ce n'est pas une feuille
 	{
-		createQuadtree(qv, &(*noeud)->NO, qv[i].NOid);
-		createQuadtree(qv, &(*noeud)->NE, qv[i].NEid);
-		createQuadtree(qv, &(*noeud)->SO, qv[i].SOid);
-		createQuadtree(qv, &(*noeud)->SE, qv[i].SEid);
+		createQuadtree(qv, &(*noeud)->NO, qv[id].NOid);
+		createQuadtree(qv, &(*noeud)->NE, qv[id].NEid);
+		createQuadtree(qv, &(*noeud)->SO, qv[id].SOid);
+		createQuadtree(qv, &(*noeud)->SE, qv[id].SEid);
 
 	}
 	else nullNoeud(noeud); //feuille
@@ -393,10 +393,10 @@ void clearQuadtree(Quadtree * q)
  * @param q 
  * @param nbNoeuds 
  */
-void clearQuadtreeVector(Quadtree *** q, int nbNoeuds)
+void clearQuadtreeVector(Quadtree *** q, unsigned int nbNoeuds)
 {
 	if (!*q) return;
-	for(int i = 0; i < nbNoeuds; i++)
+	for(unsigned int i = 0; i < nbNoeuds; i++)
 		free((*q)[i]);
 	free(*q);
 }

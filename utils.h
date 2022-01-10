@@ -80,11 +80,11 @@ void ccVector2tree(QuadtreeVector *qv, Quadtree **noeud, int id);
 unsigned long long getSizeFile(char * path);
 void showSizeFile(unsigned long long size);
 void createNoeudsVector(QuadtreeVector *qv, Quadtree **AdressesNoeuds);
-void createVector(QuadtreeVector **qv, Quadtree **AdressesNoeuds, int nbNoeuds);
-void readFileCompressed(QuadtreeVector **v, char *path);
+void createVector(QuadtreeVector **qv, Quadtree **AdressesNoeuds, unsigned int nbNoeuds);
+void readFileQuadtree(QuadtreeVector **v, char *path);
 void copyAdressesNoeuds(Quadtree *noeud, Quadtree ***AdressesNoeuds, unsigned int * id);
-void writeQuadtree(QuadtreeVector **qv, char *path, int nbNoeuds);
-void createQuadtree(QuadtreeVector *qv, Quadtree **noeud, int i);
+void writeQuadtree(QuadtreeVector **qv, char *path, unsigned int nbNoeuds);
+void createQuadtree(QuadtreeVector *qv, Quadtree **noeud, int id);
 void addNoeuds(Quadtree *** AdressesNoeuds, unsigned int nbNoeuds);
 /**/
 extern Pixel moyenneRGB(Image * img, Coord c, int h, int w);
@@ -96,6 +96,6 @@ extern void ccTree2matrix(Quadtree *noeud, Image *img, Coord c, int h, int w);
 extern int feuille(Quadtree *noeud);
 extern void clearQuadtree(Quadtree *q);
 extern void clearImage(Image * img);
-extern void clearQuadtreeVector(Quadtree ***q, int nbNoeuds);
+extern void clearQuadtreeVector(Quadtree ***q, unsigned int nbNoeuds);
 
 #endif
